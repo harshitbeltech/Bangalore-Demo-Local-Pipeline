@@ -1,0 +1,74 @@
+# Bangalore demo — global settings
+
+triton:
+  grpc_url: "localhost:8001"
+  http_health: "http://localhost:8000/v2/health/ready"
+
+pipeline:
+  ingest_backend: ffmpeg_nvdec  # cv2 | ffmpeg_nvdec. ffmpeg_nvdec decodes HEVC on the GPU's
+                           #  NVDEC engine (idle silicon, separate from Triton's CUDA cores) and
+                           #  samples to target_fps inside ffmpeg. Software cv2 decode costs ~0.5
+                           #  CPU core PER 1440p camera; on this 8-core box that starves detection.
+                           #  NVDEC cuts per-stream CPU ~4x. Falls back to cv2 if ffmpeg missing.
+  detect_shards: 1         # REVERTED to 1 after a box reboot (2026-06-05): concurrent GPU
+                           #  access (shards>1 + serialize_gpu=false) correlates with hard
+                           #  crashes on this consumer RTX 3090 (Xid 13 "Illegal Instruction"
+                           #  seen on tritonserver; 2 reboots under high-concurrency runs vs
+                           #  17h stable serialized). Keep 1 until concurrency is proven safe.
+  # detect_shards: 2       # parallel detect/track threads. Cameras are split round-robin
+                           #  across shards; each shard owns its cameras' DeepSort trackers
+                           #  (single-threaded per shard). A single detect thread caps ~19fps
+                           #  (ODN + per-frame DeepSort); sharding multiplies that. Needs
+                           #  serialize_gpu=false (else shards serialise on the one GPU lock).
+  target_fps: 5            # detection rate; streams decode at native 25fps, sampled to this
+  odn_batch_size: 1        # per-frame ODN (matches the proven-stable batch pipeline path)
+  odn_batch_wait_ms: 25    # max wait to fill an ODN batch
+  ingest_queue_max: 64     # per-camera frame buffer. Large so an eval burst (detector busy on a
+                           #  vehicle) is absorbed instead of dropping frames. At 5fps, 64 ~= 12s buffer.
+                           #  'dropped' in the heartbeat must stay 0 for a no-loss run.
+  max_miss: 30             # frames a track may be unseen before it is finalized
+  min_track_hits: 3        # confirmed-track threshold before a vehicle is evaluated
+  eval_after_frames: 6     # evaluate a vehicle ONCE it has this many tracked frames (don't wait
+                           #  for it to exit). Catches vehicles that never cleanly leave the frame.
+  stage_logging: true      # emit per-camera/per-frame stage logs (ODN -> DeepSort -> Violation -> LPR)
+  violation_workers: 2     # overlap one vehicle's Drive upload with the next vehicle's GPU eval
+                           # (safe: serialize_gpu still serializes GPU ops; seatbelt model is now per-thread)
+  sample_frames: 4         # max frames sampled per model. Fewer = faster eval = shorter GPU-lock hold,
+                           #  so detection is starved less and the queue stays drained (no-loss priority).
+  serialize_gpu: true      # RE-ENABLED after a box reboot (2026-06-05). This lock is a STABILITY
+                           #  workaround, not just throughput: unserialized concurrent GPU access
+                           #  on this RTX 3090 triggers driver faults (Xid 13/43) and has twice
+                           #  hard-rebooted the box. Serialized 3-cam ran 17h with zero crashes.
+                           #  Do NOT set false on this box without a stability plan (MPS / newer
+                           #  driver / dedicated GPU). Throughput scaling -> horizontal (queues).
+  # serialize_gpu: false   # OFF: let detection overlap vehicle eval. The lock kept GPU at ~4-10%
+                           # util while DROPPING frames (idle GPU, starved detector). In-process
+                           # concurrency to Triton is already proven safe — every evaluate_vehicle
+                           # fires 4 models at Triton at once via its own thread pool. The CUDA
+                           # "illegal instruction" fault came from 4 separate PROCESSES (4 CUDA
+                           # contexts), not in-process overlap. Each GPU caller uses a distinct gRPC
+                           # client (safe). 5-fault auto-stop in pipeline.py is the backstop.
+
+drive:
+  # Leave all credentials empty to run in LOCAL FALLBACK mode (evidence -> output/evidence,
+  # rows -> output/violations.csv). Fill these in to push to Google Drive + Sheets.
+  #
+  # OAuth user creds are PREFERRED for a personal Gmail account (files are owned by you and
+  # use your 15GB). A service account CANNOT own files in personal Drive. To set up OAuth:
+  #   1) GCP console -> Credentials -> OAuth client ID -> Desktop app -> download as
+  #      credentials/client_secret.json
+  #   2) run `python authorize.py` once -> writes credentials/token.json
+  oauth_client: "credentials/oauth.json"
+  oauth_token: "credentials/token.json"
+  service_account: ""   # disabled: a service account can't own files in personal Gmail Drive
+  evidence_folder_id: "1e0l2pcizCKZLPo2QCrvnU0vVWkHwRMtb"   # Bangalore-Demo Drive folder
+  sheet_id: "1vIkiM-X2eDkfsjz-w6C7fOCcamA_AWakI4HWVaz2tA8"   # reuse one sheet across runs
+  sheet_tab: "violations"
+  share_email: "samitmohan@gmail.com"   # added as writer on the auto-created sheet
+
+output:
+  dir: "output"            # local outputs (evidence fallback, CSV mirror, logs)
+  jpeg_quality: 90
+
+logging:
+  level: "INFO"            # DEBUG | INFO | WARNING

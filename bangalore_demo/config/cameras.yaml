@@ -1,0 +1,99 @@
+# Per-camera sources. `source` is either an RTSP url or a local file path.
+# `kind: rtsp` connects live; `kind: file` loops a video to simulate a stream.
+# Disable a camera with `enabled: false`.
+#
+# NOTE: the RTSP password is Beltech@123 — the '@' is URL-encoded as %40 so it
+# does not collide with the user:pass@host separator. Transport is forced to TCP
+# via OPENCV_FFMPEG_CAPTURE_OPTIONS in core/_env.py. Streams are 1440p HEVC @ 25fps,
+# sampled down to pipeline.target_fps (5).
+
+cameras:
+  # ── 106.51.57.149 (3) ───────────────────────────────────────────────────────
+  - id: cam01
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.57.149:55411/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam02
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.57.149:55412/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam03
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.57.149:55413/ch01.264?dev=1"
+    enabled: true
+    loop: false
+
+  # ── 49.207.249.107 (4) ──────────────────────────────────────────────────────
+  - id: cam04
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.207.249.107:55411/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam05
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.207.249.107:55412/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam06
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.207.249.107:55413/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam07
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.207.249.107:55414/ch01.264?dev=1"
+    enabled: true
+    loop: false
+
+  # ── 49.206.28.214 (4) ───────────────────────────────────────────────────────
+  - id: cam08
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.206.28.214:55411/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam09
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.206.28.214:55412/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam10
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.206.28.214:55413/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam11
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@49.206.28.214:55414/ch01.264?dev=1"
+    enabled: true
+    loop: false
+
+  # ── 106.51.184.255 (5) ──────────────────────────────────────────────────────
+  - id: cam12
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.184.255:55411/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam13
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.184.255:55412/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam14
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.184.255:55413/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam15
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.184.255:55414/ch01.264?dev=1"
+    enabled: true
+    loop: false
+  - id: cam16
+    kind: rtsp
+    source: "rtsp://admin:Beltech%40123@106.51.184.255:55415/ch01.264?dev=1"
+    enabled: true
+    loop: false
+
+  # ── Excluded: 49.206.26.112 (all ports 55411–55416) per request ──────────────
